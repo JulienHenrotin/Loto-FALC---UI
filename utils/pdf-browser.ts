@@ -46,11 +46,14 @@ async function generateTable(page: PDFPage, grid: number[][], startX: number, st
   const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
   const adjustedStartY = startY + cellHeight
 
-  for (let row = 0; row < 3; row++) {
+  for (let row = 0; row < 3 && row < grid.length; row++) {
     const y = startY - row * cellHeight
-    for (let col = 0; col < 5; col++) {
+    const rowData = grid[row]
+    if (!rowData) continue;
+    for (let col = 0; col < 5 && col < rowData.length; col++) {
       const x = startX + col * cellWidth
-      if (grid[row][col] === 0) {
+      const cellValue = rowData[col]
+      if (cellValue === 0) {
         page.drawRectangle({
           x,
           y,
@@ -59,26 +62,30 @@ async function generateTable(page: PDFPage, grid: number[][], startX: number, st
           color: colors.couleurBGsecondary
         })
       } else {
-        const imageBytes = await fetchImageByNumber(grid[row][col])
-        if (imageBytes) {
-          const image = await pdfDoc.embedPng(imageBytes)
-          const scaledWidth = cellWidth - 30
-          const scaledHeight = cellHeight - 30
-          const scaledImage = image.scaleToFit(scaledWidth, scaledHeight)
-          page.drawImage(image, {
-            x: x + (cellWidth - scaledImage.width) / 2,
-            y: y + (cellHeight - scaledImage.height) / 2 + 5,
-            width: scaledImage.width,
-            height: scaledImage.height
+        if (cellValue !== undefined) {
+          const imageBytes = await fetchImageByNumber(cellValue)
+          if (imageBytes) {
+            const image = await pdfDoc.embedPng(imageBytes)
+            const scaledWidth = cellWidth - 30
+            const scaledHeight = cellHeight - 30
+            const scaledImage = image.scaleToFit(scaledWidth, scaledHeight)
+            page.drawImage(image, {
+              x: x + (cellWidth - scaledImage.width) / 2,
+              y: y + (cellHeight - scaledImage.height) / 2 + 5,
+              width: scaledImage.width,
+              height: scaledImage.height
+            })
+          }
+        }
+        if (cellValue !== undefined) {
+          page.drawText(cellValue.toString(), {
+            x: x + cellWidth / 2 - 10,
+            y: y + 10,
+            size: 20,
+            color: colors.couleurText,
+            font: helveticaBoldFont
           })
         }
-        page.drawText(grid[row][col].toString(), {
-          x: x + cellWidth / 2 - 10,
-          y: y + 10,
-          size: 20,
-          color: colors.couleurText,
-          font: helveticaBoldFont
-        })
       }
     }
   }
